@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flujo Agente IA WhatsApp — MEGA</title>
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --card: #161616;
+    --border: #2a2a2a;
+    --teal-dark: #085041; --teal-mid: #1D9E75; --teal-light: #9FE1CB; --teal-sub: #5DCAA5;
+    --purple-dark: #26215C; --purple-mid: #7F77DD; --purple-light: #CECBF6; --purple-sub: #AFA9EC;
+    --red-dark: #501313; --red-mid: #D85A30; --red-light: #F5C4B3; --red-sub: #F0997B;
+    --amber-dark: #412402; --amber-mid: #BA7517; --amber-light: #FAC775; --amber-sub: #EF9F27;
+    --blue-dark: #0C447C; --blue-mid: #378ADD; --blue-light: #B5D4F4; --blue-sub: #85B7EB;
+    --green-dark: #173404; --green-mid: #639922; --green-light: #C0DD97;
+    --gray-dark: #2C2C2A; --gray-mid: #5F5E5A; --gray-light: #B4B2A9;
+    --stop: #E24B4A;
+    --text: #f0f0f0; --muted: #888; --dim: #555;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    position: fixed; inset: 0; background: #0a0a0a;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; flex-direction: column; gap: 0;
+  }
+  #login-screen.hidden { display: none; }
+  .login-box {
+    background: #141414; border: 1px solid #222;
+    border-radius: 16px; padding: 40px 36px 36px;
+    width: 100%; max-width: 380px; text-align: center;
+  }
+  .login-logo {
+    width: 48px; height: 48px; background: var(--teal-dark);
+    border: 2px solid var(--teal-mid); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin: 0 auto 20px;
+  }
+  .login-box h2 { font-size: 18px; font-weight: 700; color: #f0f0f0; margin-bottom: 4px; }
+  .login-box p  { font-size: 12px; color: #666; margin-bottom: 28px; }
+  .login-label  { display: block; font-size: 11px; font-weight: 600; color: #888; text-align: left; margin-bottom: 6px; letter-spacing: .06em; text-transform: uppercase; }
+  .login-input  {
+    width: 100%; padding: 12px 14px; background: #1e1e1e;
+    border: 1px solid #2e2e2e; border-radius: 8px;
+    font-size: 15px; color: #f0f0f0; letter-spacing: .15em;
+    outline: none; transition: border-color .2s;
+    font-family: monospace;
+  }
+  .login-input:focus { border-color: var(--teal-mid); }
+  .login-input.error { border-color: var(--stop); animation: shake .3s; }
+  .login-btn {
+    width: 100%; margin-top: 16px; padding: 13px;
+    background: var(--teal-dark); border: 1px solid var(--teal-mid);
+    border-radius: 8px; color: var(--teal-light);
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: background .2s, transform .1s;
+  }
+  .login-btn:hover  { background: #0a6352; }
+  .login-btn:active { transform: scale(.98); }
+  .login-error { font-size: 12px; color: var(--stop); margin-top: 10px; min-height: 18px; }
+  .login-hint  { font-size: 11px; color: #444; margin-top: 20px; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-6px)}
+    40%{transform:translateX(6px)}
+    60%{transform:translateX(-4px)}
+    80%{transform:translateX(4px)}
+  }
+
+  /* ── HEADER ── */
+  header { background: #111; border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  header h1 { font-size: 16px; font-weight: 600; color: var(--teal-light); }
+  header p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--gray-light); }
+  .leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── LAYOUT ── */
+  .page { max-width: 1400px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  /* ── FLOW GRID ── */
+  .flow-grid { display: grid; grid-template-columns: 200px 1fr 200px; gap: 0 16px; align-items: start; }
+  .col-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; text-align: center; padding: 6px 0 12px; }
+
+  /* ── STEP ROWS ── */
+  .step-row { display: contents; }
+  .step-side { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 0; }
+  .step-center { display: flex; flex-direction: column; align-items: center; }
+  .connector { width: 2px; height: 18px; background: var(--teal-mid); margin: 0 auto; }
+  .connector-blue { background: var(--blue-mid); }
+  .connector-green { background: var(--green-mid); }
+
+  /* ── NODES ── */
+  .node {
+    border-radius: 8px; padding: 10px 14px; width: 100%; max-width: 340px;
+    cursor: pointer; transition: transform .15s, box-shadow .15s;
+    border: 1px solid transparent; position: relative;
+  }
+  .node:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,.5); }
+  .node-title { font-size: 13px; font-weight: 600; }
+  .node-sub { font-size: 11px; margin-top: 3px; opacity: .8; }
+  .node-badge { position: absolute; top: -6px; right: 8px; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 10px; letter-spacing: .04em; }
+
+  /* color variants */
+  .teal   { background: var(--teal-dark);   border-color: var(--teal-mid);   }
+  .teal   .node-title { color: var(--teal-light); } .teal .node-sub { color: var(--teal-sub); }
+  .purple { background: var(--purple-dark); border-color: var(--purple-mid); }
+  .purple .node-title { color: var(--purple-light); } .purple .node-sub { color: var(--purple-sub); }
+  .red    { background: var(--red-dark);    border-color: var(--red-mid);    }
+  .red    .node-title { color: var(--red-light); } .red .node-sub { color: var(--red-sub); }
+  .blue   { background: var(--blue-dark);   border-color: var(--blue-mid);   }
+  .blue   .node-title { color: var(--blue-light); } .blue .node-sub { color: var(--blue-sub); }
+  .green  { background: var(--green-dark);  border-color: var(--green-mid);  }
+  .green  .node-title { color: var(--green-light); } .green .node-sub { color: var(--green-light); opacity:.7; }
+  .pill { background: var(--gray-dark); border: 1px solid var(--gray-mid); border-radius: 20px; padding: 8px 18px; font-size: 12px; font-weight: 600; }
+  .pill.ok  { background: var(--green-dark); border-color: var(--green-mid); color: var(--green-light); }
+  .pill.no  { color: var(--gray-light); }
+
+  /* ── SIDE NODES ── */
+  .side-node {
+    border-radius: 6px; padding: 7px 10px; width: 100%;
+    font-size: 11px; cursor: pointer; transition: transform .15s;
+    border: 1px solid transparent; text-align: center;
+  }
+  .side-node:hover { transform: scale(1.02); }
+  .esc  { background: var(--red-dark);   border-color: var(--red-mid);   color: var(--red-sub); }
+  .esc  strong { color: var(--red-light); display: block; font-size: 11px; }
+  .esc  .phone { color: var(--stop); font-weight: 700; font-size: 12px; }
+  .fol  { background: var(--amber-dark); border-color: var(--amber-mid); color: var(--amber-sub); }
+  .fol  strong { color: var(--amber-light); display: block; font-size: 11px; }
+
+  .arrow-label { font-size: 10px; color: var(--red-mid); text-align: right; margin-bottom: 2px; font-style: italic; }
+  .arrow-label-left { font-size: 10px; color: var(--amber-mid); text-align: left; margin-bottom: 2px; font-style: italic; }
+  .spacer { height: 8px; }
+
+  /* ── MODAL ── */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; display: none; align-items: center; justify-content: center; padding: 24px; }
+  .overlay.show { display: flex; }
+  .modal { background: #1a1a1a; border: 1px solid var(--border); border-radius: 12px; max-width: 520px; width: 100%; padding: 24px; position: relative; max-height: 80vh; overflow-y: auto; }
+  .modal h2 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .modal .close { position: absolute; top: 12px; right: 14px; font-size: 20px; cursor: pointer; color: var(--muted); background: none; border: none; }
+  .modal-section { margin-bottom: 14px; }
+  .modal-section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 5px; }
+  .modal-section p, .modal-section li { font-size: 13px; line-height: 1.6; color: #ddd; }
+  .modal-section ul { padding-left: 16px; }
+  .msg-bubble { background: #0d2b1e; border: 1px solid var(--teal-dark); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: var(--teal-light); line-height: 1.6; margin-top: 4px; font-style: italic; }
+  .tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin: 2px 2px 0; font-weight: 600; }
+  .tag-teal   { background: var(--teal-dark); color: var(--teal-light); }
+  .tag-red    { background: var(--red-dark); color: var(--red-sub); }
+  .tag-amber  { background: var(--amber-dark); color: var(--amber-light); }
+  .tag-purple { background: var(--purple-dark); color: var(--purple-light); }
+
+  /* ── BOTTOM SECTIONS ── */
+  .section-divider { border: none; border-top: 1px dashed var(--border); margin: 40px 0 24px; }
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); text-align: center; margin-bottom: 20px; font-weight: 700; }
+
+  .follow-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .follow-card { background: var(--amber-dark); border: 1px solid var(--amber-mid); border-radius: 8px; padding: 12px; }
+  .follow-card h4 { font-size: 12px; font-weight: 700; color: var(--amber-light); margin-bottom: 8px; }
+  .follow-card .time-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+  .follow-card .time { font-size: 10px; font-weight: 700; color: var(--amber-sub); min-width: 32px; }
+  .follow-card .msg  { font-size: 11px; color: #ddc; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+  .kpi-card { background: var(--blue-dark); border: 1px solid var(--blue-mid); border-radius: 8px; padding: 12px 14px; cursor: pointer; transition: transform .12s; }
+  .kpi-card:hover { transform: translateY(-1px); }
+  .kpi-card h4 { font-size: 12px; font-weight: 700; color: var(--blue-light); margin-bottom: 4px; }
+  .kpi-card .formula { font-size: 11px; color: var(--blue-sub); margin-bottom: 3px; font-family: monospace; }
+  .kpi-card .why { font-size: 11px; color: var(--gray-light); }
+
+  .crm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; margin-top: 16px; }
+  .crm-tag { background: #161e2b; border: 1px solid #1e3050; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: var(--blue-sub); display: flex; align-items: center; gap: 6px; }
+  .crm-num { font-weight: 700; color: var(--blue-light); font-size: 12px; min-width: 22px; }
+
+  /* ── OBJECIONES TABLE ── */
+  .obj-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .obj-table th { background: #0C447C; color: var(--blue-light); padding: 8px 10px; text-align: left; font-size: 11px; }
+  .obj-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: #ddd; }
+  .obj-table tr:nth-child(even) td { background: #111; }
+  .obj-table tr:hover td { background: #1a1f2e; }
+
+  footer { text-align: center; padding: 24px; font-size: 11px; color: var(--dim); border-top: 1px solid var(--border); margin-top: 40px; }
+
+  @media (max-width: 700px) {
+    .flow-grid { grid-template-columns: 1fr; }
+    .step-side { display: none; }
+    header { flex-direction: column; align-items: flex-start; }
+  }
+  @media print {
+    .overlay { display: none !important; }
+    body { background: #fff; color: #000; }
+  }
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="close" onclick="document.getElementById('overlay').classList.remove('show')">×</button>
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">⚡</div>
+    <h2>Flujo Agente IA</h2>
+    <p>MEGA · Documento de implementación</p>
+    <label class="login-label" for="pwd-input">Clave de acceso</label>
+    <input
+      id="pwd-input"
+      class="login-input"
+      type="password"
+      placeholder="••••••••"
+      maxlength="30"
+      autocomplete="off"
+      onkeydown="if(event.key==='Enter') checkPassword()"
+    />
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn" onclick="checkPassword()">Entrar →</button>
+    <div class="login-hint">Acceso restringido al equipo MEGA</div>
+  </div>
+</div>
+
+<header>
+  <div>
+    <h1>⚡ Flujo Agente IA — Ventas por WhatsApp</h1>
+    <p>MEGA · Versión ejecutiva para implementación · Haz clic en cualquier bloque para ver el detalle</p>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="leg-dot" style="background:var(--teal-mid)"></div>Flujo principal</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--purple-mid)"></div>Decisión</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--red-mid)"></div>Escalamiento</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--amber-mid)"></div>Seguimiento</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--blue-mid)"></div>CRM/Bitrix</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--green-mid)"></div>InConCert</div>
+  </div>
+</header>
+
+<div class="page">
+
+<!-- ═══════════ MAIN FLOW ═══════════ -->
+<div class="flow-grid">
+
+  <!-- COL HEADERS -->
+  <div class="col-label" style="color:var(--amber-mid)">↩ Seguimiento automático</div>
+  <div class="col-label" style="color:var(--teal-mid)">Flujo principal (13 pasos)</div>
+  <div class="col-label" style="color:var(--red-mid)">Escalamiento a humano ↪</div>
+
+  <!-- ── PASO 1 ── -->
+  <div></div>
+  <div class="step-center">
+    <div class="node teal" onclick="openModal('paso1')">
+      <div class="node-badge" style="background:var(--teal-dark);color:var(--teal-mid);border:1px solid var(--teal-mid)">PASO 1</div>
+      <div class="node-title">📥 Entrada del lead</div>
+      <div class="node-sub">Meta Ads · Google Ads · Web · WhatsApp directo · Referidos · Remarketing</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div></div>
+
+  <!-- ── PASO 2 ── -->
+  <div class="step-side">
+    <div class="arrow-label-left">sin respuesta ↙</div>
+    <div class="side-node fol" onclick="openModal('fol1')">
+      <strong>Seguimiento apertura</strong>
+      5m · 30m · 2h · 24h
+    </div>
+  </div>
+  <div class="step-center">
+    <div class="node teal" onclick="openModal('paso2')">
+      <div class="node-badge" style="background:var(--teal-dark);color:var(--teal-mid);border:1px solid var(--teal-mid)">PASO 2</div>
+      <div class="node-title">👋 Apertura</div>
+      <div class="node-sub">Confirmar interés · Reducir fricción · Primer mensaje</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">pide asesor ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_asesor')">
+      <strong>→ Asesor humano</strong>
+      pide hablar con persona
+    </div>
+  </div>
+
+  <!-- ── PASO 2A ── -->
+  <div></div>
+  <div class="step-center">
+    <div class="node purple" onclick="openModal('paso2a')">
+      <div class="node-badge" style="background:var(--purple-dark);color:var(--purple-mid);border:1px solid var(--purple-mid)">2A</div>
+      <div class="node-title">🔍 ¿Es cliente actual?</div>
+      <div class="node-sub">Filtro: nuevo prospecto · soporte · adicional</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">soporte ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_soporte')" style="margin-bottom:6px">
+      <strong><span class="phone">📞 33 96 90 0000</span></strong>
+      Centro Atención Cliente
+    </div>
+    <div class="spacer"></div>
+    <div class="arrow-label">adicional ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_adicional')">
+      <strong>→ Asesor ventas</strong>
+      cliente actual + adicional
+    </div>
+  </div>
+
+  <!-- ── PASO 3 ── -->
+  <div class="step-side">
+    <div class="arrow-label-left">sin respuesta ↙</div>
+    <div class="side-node fol" onclick="openModal('fol1')">
+      <strong>Seguimiento intención</strong>
+      5m · 30m · 2h · 24h
+    </div>
+  </div>
+  <div class="step-center">
+    <div class="node purple" onclick="openModal('paso3')">
+      <div class="node-badge" style="background:var(--purple-dark);color:var(--purple-mid);border:1px solid var(--purple-mid)">PASO 3</div>
+      <div class="node-title">🎯 Identificación de intención</div>
+      <div class="node-sub">¿Contratar hoy · Cotizar · Solo revisar cobertura?</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">caliente ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_caliente')">
+      <strong>→ Escalar inmediato</strong>
+      dice "quiero contratar"
+    </div>
+  </div>
+
+  <!-- ── PASO 4 ── -->
+  <div class="step-side">
+    <div class="arrow-label-left">sin CP ↙</div>
+    <div class="side-node fol" onclick="openModal('fol2')">
+      <strong>Seguimiento cobertura</strong>
+      5m · 30m · 2h · 24h
+    </div>
+  </div>
+  <div class="step-center">
+    <div class="node teal" onclick="openModal('paso4')">
+      <div class="node-badge" style="background:var(--teal-dark);color:var(--teal-mid);border:1px solid var(--teal-mid)">PASO 4</div>
+      <div class="node-title">📍 Validación de cobertura</div>
+      <div class="node-sub">Solicitar colonia · código postal · domicilio</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">sin cobertura / dudosa ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_cobertura')">
+      <strong>→ Asesor sin mencionar</strong>
+      falta de cobertura al cliente
+    </div>
+  </div>
+
+  <!-- ── PASO 5 ── -->
+  <div></div>
+  <div class="step-center">
+    <div class="node teal" onclick="openModal('paso5')">
+      <div class="node-badge" style="background:var(--teal-dark);color:var(--teal-mid);border:1px solid var(--teal-mid)">PASO 5</div>
+      <div class="node-title">💡 Detección de necesidad</div>
+      <div class="node-sub">Uso · personas en casa · dispositivos · hábitos</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">empresarial / especial ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_especial')">
+      <strong>→ Asesor especial</strong>
+      uso empresarial o caso atípico
+    </div>
+  </div>
+
+  <!-- ── PASO 6 ── -->
+  <div></div>
+  <div class="step-center">
+    <div class="node purple" onclick="openModal('paso6')">
+      <div class="node-badge" style="background:var(--purple-dark);color:var(--purple-mid);border:1px solid var(--purple-mid)">PASO 6</div>
+      <div class="node-title">🌡️ Clasificación del lead</div>
+      <div class="node-sub">🔴 Caliente &nbsp;·&nbsp; 🟡 Tibio &nbsp;·&nbsp; 🔵 Frío &nbsp;·&nbsp; ⚫ No viable</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div></div>
+
+  <!-- ── PASO 7 ── -->
+  <div class="step-side">
+    <div class="arrow-label-left">sin respuesta ↙</div>
+    <div class="side-node fol" onclick="openModal('fol3')">
+      <strong>Seguimiento oferta</strong>
+      5m · 30m · 2h · 24h
+    </div>
+  </div>
+  <div class="step-center">
+    <div class="node teal" onclick="openModal('paso7')">
+      <div class="node-badge" style="background:var(--teal-dark);color:var(--teal-mid);border:1px solid var(--teal-mid)">PASO 7</div>
+      <div class="node-title">📦 Recomendación de paquete</div>
+      <div class="node-sub">Una sola opción · beneficios concretos · precio claro</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">condiciones especiales ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_nego')">
+      <strong>→ Asesor negociación</strong>
+      descuento o condición esp.
+    </div>
+  </div>
+
+  <!-- ── PASO 8 ── -->
+  <div class="step-side">
+    <div class="arrow-label-left">"lo pienso" ↙</div>
+    <div class="side-node fol" onclick="openModal('fol4')">
+      <strong>Seguimiento objeción</strong>
+      30m · 2h · 24h · Día 2
+    </div>
+  </div>
+  <div class="step-center">
+    <div class="node purple" onclick="openModal('paso8')">
+      <div class="node-badge" style="background:var(--purple-dark);color:var(--purple-mid);border:1px solid var(--purple-mid)">PASO 8</div>
+      <div class="node-title">🛡️ Manejo de objeciones</div>
+      <div class="node-sub">17 objeciones con respuesta y pregunta de cierre definidas</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">enojo / objeción fuerte ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_enojo')">
+      <strong>→ Asesor humano</strong>
+      enojo, desconfianza extrema
+    </div>
+  </div>
+
+  <!-- ── PASO 9 ── -->
+  <div class="step-side">
+    <div class="arrow-label-left">intención alta se enfría ↙</div>
+    <div class="side-node fol" onclick="openModal('fol5')">
+      <strong>Seguimiento intención alta</strong>
+      5m · 30m · 2h · 24h
+    </div>
+  </div>
+  <div class="step-center">
+    <div class="node teal" onclick="openModal('paso9')">
+      <div class="node-badge" style="background:var(--teal-dark);color:var(--teal-mid);border:1px solid var(--teal-mid)">PASO 9</div>
+      <div class="node-title">✅ Cierre directo</div>
+      <div class="node-sub">Pedir avance claro · una sola pregunta de cierre</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">dice "quiero contratar" ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_caliente')">
+      <strong>→ Escalar inmediato</strong>
+      alta intención confirmada
+    </div>
+  </div>
+
+  <!-- ── PASO 10 ── -->
+  <div></div>
+  <div class="step-center">
+    <div class="node teal" onclick="openModal('paso10')">
+      <div class="node-badge" style="background:var(--teal-dark);color:var(--teal-mid);border:1px solid var(--teal-mid)">PASO 10</div>
+      <div class="node-title">📋 Captura de datos</div>
+      <div class="node-sub">Nombre completo · teléfono · domicilio de instalación</div>
+    </div>
+    <div class="connector"></div>
+  </div>
+  <div class="step-side">
+    <div class="arrow-label">documentos sensibles ↗</div>
+    <div class="side-node esc" onclick="openModal('esc_docs')">
+      <strong>→ Asesor seguro</strong>
+      INE, CURP, bancarios
+    </div>
+  </div>
+
+  <!-- ── PASO 11 ── -->
+  <div></div>
+  <div class="step-center">
+    <div class="node red" onclick="openModal('paso11')">
+      <div class="node-badge" style="background:var(--red-dark);color:var(--red-mid);border:1px solid var(--red-mid)">PASO 11</div>
+      <div class="node-title">🤝 Transferencia a asesor humano</div>
+      <div class="node-sub">Con contexto completo de la conversación · etapa · clasificación</div>
+    </div>
+    <div class="connector connector-blue"></div>
+  </div>
+  <div></div>
+
+  <!-- ── PASO 12 ── -->
+  <div></div>
+  <div class="step-center">
+    <div class="node blue" onclick="openModal('paso12')">
+      <div class="node-badge" style="background:var(--blue-dark);color:var(--blue-mid);border:1px solid var(--blue-mid)">PASO 12</div>
+      <div class="node-title">📊 Tipificación CRM / Bitrix</div>
+      <div class="node-sub">28 etapas definidas · KPIs · abandono por nodo</div>
+    </div>
+    <div class="connector connector-green"></div>
+  </div>
+  <div></div>
+
+  <!-- ── PASO 13 ── -->
+  <div></div>
+  <div class="step-center">
+    <div class="node green" onclick="openModal('paso13')">
+      <div class="node-badge" style="background:var(--green-dark);color:var(--green-mid);border:1px solid var(--green-mid)">PASO 13</div>
+      <div class="node-title">📞 InConCert — Marcado por voz</div>
+      <div class="node-sub">Campaña de máximos intentos · Activa a las 2h sin respuesta</div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:12px;justify-content:center">
+      <div class="pill ok">✓ Venta ingresada</div>
+      <div class="pill no">✗ No interesado</div>
+    </div>
+  </div>
+  <div></div>
+
+</div><!-- /flow-grid -->
+
+<!-- ═══════════ SEGUIMIENTOS ═══════════ -->
+<hr class="section-divider">
+<div class="section-title">Secuencias de seguimiento automático</div>
+<div class="follow-grid">
+  <div class="follow-card" onclick="openModal('fol1')">
+    <h4>Sin primera respuesta</h4>
+    <div class="time-row"><span class="time">5 min</span><span class="msg">Saludo + pide colonia/CP</span></div>
+    <div class="time-row"><span class="time">30 min</span><span class="msg">Solo el código postal</span></div>
+    <div class="time-row"><span class="time">2 hrs</span><span class="msg">📞 InConCert voz</span></div>
+    <div class="time-row"><span class="time">24 hrs</span><span class="msg">Cierre cortés</span></div>
+  </div>
+  <div class="follow-card" onclick="openModal('fol2')">
+    <h4>Zona dada, sin terminar CP</h4>
+    <div class="time-row"><span class="time">5 min</span><span class="msg">Confirmar colonia o CP</span></div>
+    <div class="time-row"><span class="time">30 min</span><span class="msg">Pedir CP para validar</span></div>
+    <div class="time-row"><span class="time">2 hrs</span><span class="msg">📞 InConCert voz</span></div>
+    <div class="time-row"><span class="time">24 hrs</span><span class="msg">Pausa cortés</span></div>
+  </div>
+  <div class="follow-card" onclick="openModal('fol3')">
+    <h4>Oferta enviada sin respuesta</h4>
+    <div class="time-row"><span class="time">5 min</span><span class="msg">¿Qué te pareció?</span></div>
+    <div class="time-row"><span class="time">30 min</span><span class="msg">Alternativa económica</span></div>
+    <div class="time-row"><span class="time">2 hrs</span><span class="msg">📞 InConCert voz</span></div>
+    <div class="time-row"><span class="time">24 hrs</span><span class="msg">Retomar de ayer</span></div>
+  </div>
+  <div class="follow-card" onclick="openModal('fol4')">
+    <h4>"Lo voy a pensar"</h4>
+    <div class="time-row"><span class="time">30 min</span><span class="msg">¿Cuál es tu duda?</span></div>
+    <div class="time-row"><span class="time">2 hrs</span><span class="msg">Resumen en 2 líneas</span></div>
+    <div class="time-row"><span class="time">24 hrs</span><span class="msg">¿Pudiste revisarlo?</span></div>
+    <div class="time-row"><span class="time">Día 2</span><span class="msg">📞 InConCert voz</span></div>
+  </div>
+  <div class="follow-card" onclick="openModal('fol5')">
+    <h4>Intención alta se enfría</h4>
+    <div class="time-row"><span class="time">5 min</span><span class="msg">¿Seguimos con la solicitud?</span></div>
+    <div class="time-row"><span class="time">30 min</span><span class="msg">Solo faltan datos básicos</span></div>
+    <div class="time-row"><span class="time">2 hrs</span><span class="msg">📞 InConCert voz</span></div>
+    <div class="time-row"><span class="time">24 hrs</span><span class="msg">Pausa solicitud</span></div>
+  </div>
+</div>
+
+<!-- ═══════════ KPIs ═══════════ -->
+<hr class="section-divider">
+<div class="section-title">KPIs para medir el Agente IA</div>
+<div class="kpi-grid">
+  <div class="kpi-card" onclick="openModal('kpi1')">
+    <h4>Tasa de respuesta al 1er mensaje</h4>
+    <div class="formula">Respuestas / leads recibidos</div>
+    <div class="why">Mide si el mensaje de apertura engancha</div>
+  </div>
+  <div class="kpi-card" onclick="openModal('kpi2')">
+    <h4>Cobertura validada positiva</h4>
+    <div class="formula">Cobertura positiva / leads totales</div>
+    <div class="why">Filtra viabilidad real antes de ofertar</div>
+  </div>
+  <div class="kpi-card" onclick="openModal('kpi3')">
+    <h4>Aceptación de oferta</h4>
+    <div class="formula">Ofertas aceptadas / ofertas enviadas</div>
+    <div class="why">Mide relevancia comercial del paquete recomendado</div>
+  </div>
+  <div class="kpi-card" onclick="openModal('kpi4')" style="border-color:#FAC775">
+    <h4 style="color:#FAC775">⭐ Lead to Sale</h4>
+    <div class="formula">Ventas / leads totales</div>
+    <div class="why">KPI principal de conversión del canal</div>
+  </div>
+  <div class="kpi-card" onclick="openModal('kpi5')">
+    <h4>Abandono por etapa</h4>
+    <div class="formula">Abandonos por nodo / total etapa</div>
+    <div class="why">Detecta el mayor punto de fuga en el flujo</div>
+  </div>
+  <div class="kpi-card" onclick="openModal('kpi6')">
+    <h4>Conversión post-escalamiento</h4>
+    <div class="formula">Ventas post / escalamientos totales</div>
+    <div class="why">Mide la calidad del handoff bot → humano</div>
+  </div>
+  <div class="kpi-card" onclick="openModal('kpi7')">
+    <h4>Clientes actuales detectados</h4>
+    <div class="formula">Redirecciones ok / cl. actuales totales</div>
+    <div class="why">Evita mezclar soporte con ventas</div>
+  </div>
+  <div class="kpi-card" onclick="openModal('kpi8')">
+    <h4>Tasa de recuperación</h4>
+    <div class="formula">Respuestas a seguimiento / abandonos</div>
+    <div class="why">Mide efectividad del follow-up automático</div>
+  </div>
+</div>
+
+<!-- ═══════════ CRM ETAPAS ═══════════ -->
+<hr class="section-divider">
+<div class="section-title">28 Etapas de tipificación en CRM / Bitrix</div>
+<div class="crm-grid" id="crm-grid"></div>
+
+<!-- ═══════════ OBJECIONES ═══════════ -->
+<hr class="section-divider">
+<div class="section-title">Tabla completa de manejo de objeciones</div>
+<div style="overflow-x:auto">
+<table class="obj-table" id="obj-table">
+  <thead><tr><th>Objeción</th><th>Interpreta la IA</th><th>Respuesta sugerida</th><th>Pregunta de cierre</th></tr></thead>
+  <tbody id="obj-body"></tbody>
+</table>
+</div>
+
+</div><!-- /page -->
+
+<footer>Agente IA WhatsApp · Internet Residencial MEGA · Documento de implementación operativa</footer>
+
+<script>
+// ─── PASSWORD ─────────────────────────────────────────────
+const PASS = "MEGA2025";
+function checkPassword() {
+  const val = document.getElementById('pwd-input').value.trim();
+  const errEl = document.getElementById('login-error');
+  const inp = document.getElementById('pwd-input');
+  if (val === PASS) {
+    document.getElementById('login-screen').classList.add('hidden');
+    errEl.textContent = '';
+  } else {
+    inp.classList.add('error');
+    errEl.textContent = 'Clave incorrecta. Intenta de nuevo.';
+    inp.value = '';
+    setTimeout(() => inp.classList.remove('error'), 400);
+    inp.focus();
+  }
+}
+document.getElementById('pwd-input').focus();
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const modals = {
+  paso1: {
+    title: "1 · Entrada del lead",
+    color: "var(--teal-mid)",
+    sections: [
+      { h: "Fuentes de entrada", body: "Meta Ads · Google Ads · Formularios web · WhatsApp directo · Referidos · Campañas de remarketing" },
+      { h: "Acción del sistema", body: "El lead entra a Bitrix y se asigna automáticamente al Agente IA. El tiempo de respuesta debe ser menor a 30 segundos." },
+      { h: "Etapa CRM", body: "→ Lead recibido · → Primer mensaje enviado" }
+    ]
+  },
+  paso2: {
+    title: "2 · Apertura",
+    color: "var(--teal-mid)",
+    sections: [
+      { h: "Objetivo", body: "Confirmar interés, reducir fricción y llevar al cliente al siguiente paso sin presionar." },
+      { h: "Mensaje Opción A — Directa", msg: "Hola 👋 Vi que te interesó internet para tu casa.\nTe ayudo a revisar si tenemos cobertura en tu zona.\n¿Me compartes tu colonia o código postal?" },
+      { h: "Mensaje Opción B — Comercial", msg: "Hola 👋 Soy tu asesor virtual.\nPuedo ayudarte a encontrar el mejor paquete de internet para tu hogar.\n¿En qué colonia sería la instalación?" },
+      { h: "Mensaje Opción C — Campaña", msg: "Hola 👋 Gracias por escribirnos, tenemos una excelente promoción de internet.\nPara decirte si aplica en tu zona, ¿me compartes tu código postal o colonia?" },
+      { h: "Escalar si…", body: "El cliente pide hablar con una persona." }
+    ]
+  },
+  paso2a: {
+    title: "2A · Filtro: ¿Es cliente actual?",
+    color: "var(--purple-mid)",
+    sections: [
+      { h: "Pregunta del bot", msg: "Antes de continuar: ¿actualmente ya eres cliente o buscas contratar internet nuevo para tu casa?" },
+      { h: "Si es NUEVO PROSPECTO", body: "Continuar flujo normal hacia paso 3." },
+      { h: "Si es CLIENTE ACTUAL con problema", msg: "Entiendo. Este WhatsApp es solo para ventas. Para soporte de tu servicio actual, por favor comunícate al Centro de Atención al Cliente: 33 96 90 0000. Gracias." },
+      { h: "Si CLIENTE ACTUAL quiere adicional", msg: "Perfecto. Si ya eres cliente y quieres contratar un servicio adicional o mejorar tu paquete, te paso con un asesor de ventas para revisarlo." },
+      { h: "Etiqueta CRM", body: "Cliente actual detectado · Cliente actual con problema · Cliente actual escalado por adicional" }
+    ]
+  },
+  paso3: {
+    title: "3 · Identificación de intención",
+    color: "var(--purple-mid)",
+    sections: [
+      { h: "Pregunta del bot", msg: "¿Buscas contratar hoy, cotizar opciones o solo revisar cobertura?" },
+      { h: "Clasificación resultante", body: "🔴 CALIENTE: dice 'quiero contratar', manda domicilio, pregunta instalación → escalar rápido.\n🟡 TIBIO: pregunta precio, cobertura, paquetes o promociones → validar y ofertar.\n🔵 FRÍO: dice 'info', 'luego veo', 'mándame información' → seguimiento + objeciones." },
+      { h: "Escalar si…", body: "El cliente confirma que quiere contratar de inmediato." }
+    ]
+  },
+  paso4: {
+    title: "4 · Validación de cobertura",
+    color: "var(--teal-mid)",
+    sections: [
+      { h: "Mensaje del bot", msg: "Perfecto. ¿Me compartes tu colonia o código postal para revisar disponibilidad?" },
+      { h: "Si el cliente manda domicilio/ubicación", msg: "Gracias. Con eso puedo revisar cobertura. Dame un momento y te confirmo qué opciones aplican." },
+      { h: "⚠️ Si NO hay cobertura o es dudosa", body: "NO decir al cliente que no hay cobertura. Escalar inmediatamente a asesor humano." },
+      { h: "Mensaje antes de transferir (sin cobertura)", msg: "Déjame escalar tu caso con un asesor para que te dé información exacta sobre tu zona. Un momento." },
+      { h: "Regla crítica", body: "El bot NUNCA dice 'no hay cobertura'. Siempre transfiere sin explicar el motivo técnico." }
+    ]
+  },
+  paso5: {
+    title: "5 · Detección de necesidad",
+    color: "var(--teal-mid)",
+    sections: [
+      { h: "Pregunta del bot", msg: "Para recomendarte bien:\n¿El internet lo usarían más para uso normal, streaming, home office o videojuegos?" },
+      { h: "Lógica de recomendación", body: "Uso básico → paquete básico.\nHome office / streaming → paquete medio.\nGaming / muchos dispositivos → paquete alto.\nUso empresarial → escalar a asesor especial." },
+      { h: "Escalar si…", body: "Uso empresarial o caso muy específico fuera del catálogo residencial." }
+    ]
+  },
+  paso6: {
+    title: "6 · Clasificación del lead",
+    color: "var(--purple-mid)",
+    sections: [
+      { h: "Clasificación automática interna", body: "Esta etapa es interna — el cliente no la ve. El bot la usa para decidir la velocidad de escalamiento y el tono de los mensajes siguientes." },
+      { h: "Tipos y señales", body: "🔴 CALIENTE: quiere contratar, manda domicilio, pregunta instalación, pregunta requisitos → cerrar rápido, escalar a humano.\n\n🟡 TIBIO: pregunta precio, cobertura, paquetes o promociones → ofertar y validar.\n\n🔵 FRÍO: 'info', 'luego veo', 'mándame información' → seguimiento y objeciones.\n\n⚫ NO VIABLE: sin cobertura, zona fuera, datos inválidos → no prometer, transferir.\n\n⚡ OBJECIÓN FUERTE: 'está caro', 'no confío', 'mejor otra compañía' → manejar y escalar si insiste." }
+    ]
+  },
+  paso7: {
+    title: "7 · Recomendación de paquete",
+    color: "var(--teal-mid)",
+    sections: [
+      { h: "Mensaje del bot", msg: "Por lo que me comentas, te conviene el paquete de ___ MB.\nTe funciona bien para ___ y el precio es de $___/mes.\n¿Quieres que avancemos con la solicitud?" },
+      { h: "Regla clave", body: "Recomendar UNA sola opción concreta. No presentar lista de paquetes. La recomendación debe salir de la necesidad detectada en el paso 5." },
+      { h: "⚠️ Pendiente de completar", body: "La tabla de paquetes por ciudad y necesidad debe ser entregada al desarrollador para que el bot pueda hacer la recomendación correcta automáticamente." },
+      { h: "Escalar si…", body: "El cliente pregunta condiciones especiales, descuento o negociación." }
+    ]
+  },
+  paso8: {
+    title: "8 · Manejo de objeciones",
+    color: "var(--purple-mid)",
+    sections: [
+      { h: "17 objeciones definidas", body: "Está caro · Lo voy a pensar · Mándame info · Ya tengo internet · Quiero comparar · No confío · No tengo tiempo · Luego te aviso · ¿Tiene contrato forzoso? · ¿Cuándo instalan? · ¿Cuántos megas necesito? · ¿La instalación cuesta? · ¿Puedo pagar después? · Vi otra promoción · No quiero llamadas · Me urge · No hay cobertura" },
+      { h: "Ver tabla completa", body: "Consulta la tabla de objeciones al final de este documento para ver la respuesta sugerida y la pregunta de cierre de cada una." },
+      { h: "Escalar si…", body: "Objeción fuerte de precio, enojo, desconfianza extrema o amenaza." }
+    ]
+  },
+  paso9: {
+    title: "9 · Cierre directo",
+    color: "var(--teal-mid)",
+    sections: [
+      { h: "Mensaje de cierre", msg: "¿Quieres que avancemos con la solicitud para dejarlo registrado?" },
+      { h: "Escalar inmediato si…", body: 'El cliente dice "quiero contratar". No esperar más — escalar de inmediato.' },
+      { h: "Mensaje antes de transferir", msg: "Excelente. Te paso con un asesor para finalizar tu contratación." },
+      { h: "Si el cliente pide fecha de instalación", msg: "Para darte una fecha confirmada, te conecto con un asesor." }
+    ]
+  },
+  paso10: {
+    title: "10 · Captura de datos",
+    color: "var(--teal-mid)",
+    sections: [
+      { h: "Mensaje del bot", msg: "Va. Para iniciar necesito:\nnombre completo, teléfono y domicilio de instalación." },
+      { h: "Bloque 1 — IA captura", body: "Nombre completo · Teléfono · Domicilio de instalación" },
+      { h: "Bloque 2 — IA / Humano", body: "Referencias del domicilio · Horario de contacto · Confirmación de paquete" },
+      { h: "Bloque 3 — SOLO HUMANO", body: "INE · CURP · Datos bancarios · Documentos · Comprobantes. El bot NUNCA solicita ni recibe estos datos." }
+    ]
+  },
+  paso11: {
+    title: "11 · Transferencia a asesor humano",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Mensaje del bot", msg: "Perfecto, ya tengo la información inicial. Te paso con un especialista para validar y continuar tu contratación." },
+      { h: "Qué debe recibir el asesor", body: "Nombre del lead · Etapa en la que va · Clasificación (caliente/tibio/frío) · Colonia o CP · Necesidad detectada · Paquete recomendado · Objeciones expresadas · Datos capturados" },
+      { h: "Etapa CRM", body: "→ Escalado a humano" }
+    ]
+  },
+  paso12: {
+    title: "12 · Tipificación CRM / Bitrix",
+    color: "var(--blue-mid)",
+    sections: [
+      { h: "28 etapas definidas", body: "Ver tabla de etapas al final. Cada mensaje, decisión y abandono debe registrar la etapa en Bitrix para poder medir el abandono por nodo." },
+      { h: "KPIs que alimenta", body: "Lead to sale · Tasa de respuesta · Abandono por etapa · Tiempo promedio a cierre · Conversión post-escalamiento" }
+    ]
+  },
+  paso13: {
+    title: "13 · InConCert — Marcado por voz",
+    color: "var(--green-mid)",
+    sections: [
+      { h: "Cuándo activa", body: "A las 2 horas sin respuesta en CUALQUIER etapa del flujo (apertura, cobertura, oferta, objeción o cierre)." },
+      { h: "Tipo de campaña", body: "Marcado por voz de máximos intentos en InConCert." },
+      { h: "⚠️ Pendiente de definir", body: "El equipo de desarrollo necesita el webhook o endpoint que dispara la campaña de InConCert, qué datos envía y quién la gestiona." }
+    ]
+  },
+  esc_asesor: {
+    title: "Escalamiento: pide hablar con persona",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Trigger", body: 'El cliente dice: "quiero hablar con alguien", "me comunicas con un asesor", "prefiero hablar con una persona".' },
+      { h: "Mensaje antes de transferir", msg: "Claro, te conecto con un asesor. Un momento." },
+      { h: "Etapa CRM", body: "→ Escalado a humano" }
+    ]
+  },
+  esc_soporte: {
+    title: "Escalamiento: cliente actual con problema",
+    color: "var(--stop)",
+    sections: [
+      { h: "Trigger", body: "El cliente menciona: falla de internet, WiFi lento, problema de factura, cobro, módem, computadora o equipo." },
+      { h: "Respuesta del bot", msg: "Entiendo. Este WhatsApp es únicamente para ventas. Para soporte de tu servicio actual, por favor comunícate al Centro de Atención al Cliente: 33 96 90 0000. Gracias." },
+      { h: "Regla", body: "NO vender. NO diagnosticar. NO prometer solución. Solo redirigir y tipificar como soporte/no ventas." }
+    ]
+  },
+  esc_adicional: {
+    title: "Escalamiento: cliente actual quiere adicional",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Trigger", body: "Cliente actual que quiere: otro paquete, más megas, otro domicilio, TV, telefonía, upgrade o servicio extra." },
+      { h: "Mensaje del bot", msg: "Perfecto. Si ya eres cliente y quieres contratar un servicio adicional o mejorar tu paquete, te paso con un asesor de ventas para revisarlo." },
+      { h: "Etiqueta CRM", body: "Cliente actual - adicional" }
+    ]
+  },
+  esc_caliente: {
+    title: "Escalamiento: lead caliente — quiere contratar",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Triggers", body: 'El cliente dice "quiero contratar", "¿cómo contrato?", "quiero que me instalen", "cuándo pueden venir".' },
+      { h: "Mensaje del bot", msg: "Excelente. Te paso con un asesor para finalizar tu contratación." },
+      { h: "Regla", body: "Escalar INMEDIATAMENTE. No seguir el flujo normal. El asesor debe recibir la conversación completa." }
+    ]
+  },
+  esc_cobertura: {
+    title: "Escalamiento: sin cobertura o cobertura dudosa",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Regla crítica", body: "El bot NUNCA le dice al cliente que no hay cobertura. Siempre escala sin mencionar el motivo técnico." },
+      { h: "Mensaje del bot", msg: "Déjame escalar tu caso con un asesor para que te dé información exacta sobre tu zona. Un momento." },
+      { h: "Qué recibe el asesor", body: "Zona o CP proporcionado · Estado de cobertura (sin cobertura / dudosa) · Datos del cliente hasta ese punto" }
+    ]
+  },
+  esc_especial: {
+    title: "Escalamiento: uso empresarial o caso especial",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Trigger", body: "El cliente menciona uso para empresa, local comercial, negocio, oficina o caso técnico muy específico." },
+      { h: "Mensaje del bot", msg: "Para darte la mejor opción para ese uso, te paso con un asesor especializado. Un momento." }
+    ]
+  },
+  esc_nego: {
+    title: "Escalamiento: descuento o condiciones especiales",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Trigger", body: "El cliente pide descuento, promoción especial, condición fuera del catálogo o negocia precio." },
+      { h: "Mensaje del bot", msg: "Voy a pasarte con un asesor para revisar si hay alguna opción especial disponible para ti." }
+    ]
+  },
+  esc_enojo: {
+    title: "Escalamiento: enojo u objeción fuerte",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Triggers", body: "Cliente se molesta, insulta, amenaza con reportar, desconfianza extrema, o insiste agresivamente en el precio." },
+      { h: "Mensaje del bot", msg: "Disculpa si algo no quedó claro. Te paso con un asesor humano para atenderte personalmente." }
+    ]
+  },
+  esc_docs: {
+    title: "Escalamiento: documentos o datos sensibles",
+    color: "var(--red-mid)",
+    sections: [
+      { h: "Trigger", body: "El cliente manda INE, CURP, datos bancarios, comprobante de domicilio u otros documentos sensibles." },
+      { h: "Mensaje del bot", msg: "Por seguridad, te paso con un asesor para continuar correctamente." },
+      { h: "Regla", body: "El bot NUNCA solicita ni almacena datos sensibles. Solo los recibe el asesor humano por canal seguro." }
+    ]
+  },
+  fol1: {
+    title: "Seguimiento: sin primera respuesta",
+    color: "var(--amber-mid)",
+    sections: [
+      { h: "5 minutos", msg: "Hola 👋 ¿Te ayudo a revisar si tenemos internet disponible en tu zona?" },
+      { h: "30 minutos", msg: "Solo necesito tu colonia o código postal para decirte qué paquetes aplican." },
+      { h: "2 horas", body: "📞 Se envía a marcado por voz en campaña de máximos intentos de InConCert." },
+      { h: "Antes de 24 hrs", msg: "Último mensaje para no molestarte. Cuando quieras revisar internet para tu hogar, puedes responder por aquí." },
+      { h: "Regla", body: "Máximo 4 toques. Si el cliente dice 'no me interesa', detener automatización." }
+    ]
+  },
+  fol2: {
+    title: "Seguimiento: zona dada, sin terminar cobertura",
+    color: "var(--amber-mid)",
+    sections: [
+      { h: "5 minutos", msg: "Con tu zona puedo revisar disponibilidad. ¿Me confirmas colonia o CP?" },
+      { h: "30 minutos", msg: "Para no darte información incorrecta, primero necesito validar cobertura. ¿Me pasas tu CP?" },
+      { h: "2 horas", body: "📞 Se envía a campaña InConCert." },
+      { h: "Antes de 24 hrs", msg: "Dejo pausada tu consulta. Si quieres retomar, mándame tu colonia o CP." }
+    ]
+  },
+  fol3: {
+    title: "Seguimiento: oferta enviada sin respuesta",
+    color: "var(--amber-mid)",
+    sections: [
+      { h: "5 minutos", msg: "¿Qué te pareció la opción que te compartí?" },
+      { h: "30 minutos", msg: "Si quieres, también puedo revisar una opción más económica o con más velocidad." },
+      { h: "2 horas", body: "📞 Campaña InConCert." },
+      { h: "Antes de 24 hrs", msg: "Hola 👋 Ayer vimos una opción de internet para tu casa. ¿Quieres que sigamos con la solicitud?" }
+    ]
+  },
+  fol4: {
+    title: "Seguimiento: cliente dijo 'lo voy a pensar'",
+    color: "var(--amber-mid)",
+    sections: [
+      { h: "30 minutos", msg: "Claro. Solo para ayudarte: ¿qué te quedó pendiente, precio, cobertura o instalación?" },
+      { h: "2 horas", msg: "Si quieres comparar bien, te puedo resumir la opción en 2 líneas." },
+      { h: "Antes de 24 hrs", msg: "Hola 👋 ¿Pudiste revisar la opción? Te ayudo a resolver cualquier duda." },
+      { h: "Día 2", body: "📞 Campaña InConCert." }
+    ]
+  },
+  fol5: {
+    title: "Seguimiento: intención alta que se enfrió",
+    color: "var(--amber-mid)",
+    sections: [
+      { h: "5 minutos", msg: "Estábamos por avanzar con tu solicitud. ¿Quieres que la dejemos registrada?" },
+      { h: "30 minutos", msg: "Solo faltan tus datos básicos para continuar con la contratación." },
+      { h: "2 horas", body: "📞 Campaña InConCert." },
+      { h: "Antes de 24 hrs", msg: "Puedo dejar pausada la solicitud. Si quieres retomarla, aquí estaré." }
+    ]
+  },
+  kpi1: { title: "KPI: Tasa de respuesta al 1er mensaje", color: "var(--blue-mid)", sections: [{ h: "Fórmula", body: "Respuestas al primer mensaje / leads recibidos totales" }, { h: "Por qué importa", body: "Mide si el mensaje de apertura funciona. Si es menor al 40%, revisar el primer mensaje y hacer A/B testing entre las opciones A, B y C." }, { h: "Acción si baja", body: "Cambiar el texto de apertura, probar con y sin emoji, probar pregunta directa vs presentación del producto." }] },
+  kpi2: { title: "KPI: Cobertura validada positiva", color: "var(--blue-mid)", sections: [{ h: "Fórmula", body: "Coberturas positivas / leads totales" }, { h: "Por qué importa", body: "Filtra viabilidad real antes de invertir tiempo en ofertar. Si es muy bajo, revisar la fuente de los leads (zonas sin cobertura)." }] },
+  kpi3: { title: "KPI: Aceptación de oferta", color: "var(--blue-mid)", sections: [{ h: "Fórmula", body: "Ofertas aceptadas / ofertas enviadas" }, { h: "Por qué importa", body: "Mide relevancia comercial del paquete recomendado. Si es bajo, revisar la detección de necesidad y la tabla de recomendación de paquetes." }] },
+  kpi4: { title: "⭐ KPI Principal: Lead to Sale", color: "var(--amber-mid)", sections: [{ h: "Fórmula", body: "Ventas cerradas / leads totales recibidos" }, { h: "Por qué importa", body: "Es el KPI principal de todo el canal. Combina la calidad del lead, la eficiencia del bot y la efectividad del asesor humano." }, { h: "Meta sugerida", body: "8–15% dependiendo del canal de origen. Leads de referidos suelen convertir más alto que leads de Meta Ads." }] },
+  kpi5: { title: "KPI: Abandono por etapa", color: "var(--blue-mid)", sections: [{ h: "Fórmula", body: "Abandonos en la etapa X / clientes que llegaron a la etapa X" }, { h: "Por qué importa", body: "Detecta el mayor punto de fuga del flujo. Si la mayoría se va en 'cobertura', hay problema de validación. Si se va en 'oferta', hay problema de precio o relevancia." }] },
+  kpi6: { title: "KPI: Conversión post-escalamiento", color: "var(--blue-mid)", sections: [{ h: "Fórmula", body: "Ventas cerradas por asesor humano / escalamientos totales recibidos" }, { h: "Por qué importa", body: "Mide la calidad del handoff. Si el bot escala muchos leads y el humano no convierte, el problema puede estar en el momento del escalamiento o en la información que recibe el asesor." }] },
+  kpi7: { title: "KPI: Clientes actuales detectados", color: "var(--blue-mid)", sections: [{ h: "Fórmula", body: "Redirecciones correctas a soporte / clientes actuales identificados" }, { h: "Por qué importa", body: "Evita que el bot intente vender a alguien que ya es cliente con un problema de servicio. Mejora la experiencia y reduce carga al asesor de ventas." }] },
+  kpi8: { title: "KPI: Tasa de recuperación por seguimiento", color: "var(--blue-mid)", sections: [{ h: "Fórmula", body: "Leads que respondieron al seguimiento / leads abandonados que recibieron seguimiento" }, { h: "Por qué importa", body: "Mide la efectividad de las 5 secuencias de follow-up. Permite saber qué mensaje de seguimiento tiene mejor respuesta." }] },
+};
+
+const crmEtapas = [
+  "Lead recibido","Primer mensaje enviado","Lead respondió","Cobertura solicitada",
+  "Cobertura validada positiva","Cobertura validada negativa","Necesidad detectada",
+  "Oferta enviada","Oferta aceptada","Objeción precio","Objeción confianza",
+  "Objeción comparación","Objeción 'lo pienso'","Datos solicitados","Datos recibidos",
+  "Escalado a humano","Venta ingresada","Venta caída","No responde","No interesado",
+  "Seguimiento programado","Recuperado por seguimiento","Cliente actual detectado",
+  "Cliente actual con problema de servicio","Cliente actual redirigido a 33 96 90 0000",
+  "Cliente actual solicita adicional","Cliente actual escalado a ventas","Caso fuera de alcance"
+];
+
+const objeciones = [
+  ["Está caro","Compara solo precio","Te entiendo. Para cuidar tu presupuesto puedo revisar si hay una opción más económica disponible en tu zona.","¿Quieres que revise una alternativa de menor precio?"],
+  ["Lo voy a pensar","Duda no resuelta","Claro, sin presión. Para ayudarte mejor, ¿tu duda principal es precio, cobertura o instalación?","Si resolvemos eso, ¿te gustaría avanzar?"],
+  ["Mándame info","Quiere evitar conversación larga","Claro. En resumen: tenemos paquetes desde $___, instalación sujeta a cobertura y opciones según tu zona.","¿Me compartes tu CP para decirte cuál aplica?"],
+  ["Ya tengo internet","No ve necesidad de cambiar","Perfecto. Muchos clientes nos comparan por velocidad, estabilidad o precio.","¿Qué es lo que más te falla hoy: velocidad, señal o precio?"],
+  ["Quiero comparar","Evaluando proveedores","Claro. Para comparar bien hay que revisar velocidad, precio, instalación y estabilidad.","¿Con qué compañía lo estás comparando?"],
+  ["No confío","Duda de legitimidad","Te entiendo. La contratación se valida con un asesor y no debes compartir datos sensibles hasta la etapa correspondiente.","¿Quieres que te pase con un asesor humano?"],
+  ["No tengo tiempo","Momento incorrecto","Sin problema. Te puedo dejar la información breve y retomamos después.","¿Prefieres que te escriba más tarde?"],
+  ["Luego te aviso","Baja urgencia","Claro. Para no molestarte, te escribo después y vemos si todavía aplica la cobertura.","¿Te contacto mañana?"],
+  ["¿Tiene contrato forzoso?","Miedo a compromiso","Depende del paquete y condiciones disponibles en tu zona. Te lo confirmo antes de avanzar.","¿Eso era lo que te detenía?"],
+  ["¿Cuándo instalan?","Alta intención de compra","La fecha exacta se confirma al validar cobertura y disponibilidad. → ESCALAR","¿Te paso con un asesor para revisar agenda?"],
+  ["¿Cuántos megas necesito?","Necesita asesoría","Depende del uso. Para casa con streaming y home office normalmente conviene revisar desde ___ MB.","¿Cuántas personas lo usarían?"],
+  ["¿La instalación cuesta?","Duda de costo inicial","Puede variar según promoción y cobertura. Te lo confirmo antes de registrar la solicitud.","¿Me compartes tu CP para revisarlo?"],
+  ["¿Puedo pagar después?","Duda económica","Depende de las condiciones de contratación disponibles.","¿Quieres que un asesor revise opciones contigo?"],
+  ["Vi otra promoción","Comparación activa","Puede ser. Las promociones cambian por zona y disponibilidad.","¿Me dices cuál viste para compararla?"],
+  ["No quiero llamadas","Prefiere WhatsApp","Claro, podemos avanzar por aquí. Solo si se requiere validación final te avisamos antes.","¿Me compartes tu colonia o CP?"],
+  ["Me urge","Alta intención","Perfecto, te ayudo a avanzar rápido. Primero valido cobertura.","¿Me pasas tu domicilio de instalación?"],
+  ["No hay cobertura","Lead no viable","Déjame escalar tu caso con un asesor para que te dé información exacta sobre tu zona. Un momento.","→ Escalar. No hacer pregunta de cierre."],
+  ["Ya soy cliente y tengo falla","Cliente actual / soporte","Entiendo. Este WhatsApp es solo para ventas. Para soporte comunícate al 33 96 90 0000.","¿Además buscas contratar un servicio adicional?"],
+  ["Mi WiFi no sirve","Problema técnico cliente","Lamento la molestia. Para revisar WiFi, el canal correcto es 33 96 90 0000.","¿También quieres revisar un paquete adicional?"],
+  ["Quiero agregar otro servicio","Cliente actual / adicional","Perfecto. Si ya eres cliente y quieres agregar un servicio, te paso con un asesor de ventas.","¿Te paso ahora con un asesor?"],
+];
+
+// ─── RENDER CRM ───────────────────────────────────────────
+const grid = document.getElementById('crm-grid');
+crmEtapas.forEach((e,i) => {
+  const d = document.createElement('div');
+  d.className = 'crm-tag';
+  d.innerHTML = `<span class="crm-num">${String(i+1).padStart(2,'0')}</span>${e}`;
+  grid.appendChild(d);
+});
+
+// ─── RENDER OBJECIONES ────────────────────────────────────
+const tbody = document.getElementById('obj-body');
+objeciones.forEach(([obj, interp, resp, cierre]) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><strong>${obj}</strong></td><td style="color:var(--muted)">${interp}</td><td style="font-style:italic;color:#ccc">${resp}</td><td style="color:var(--teal-sub)">${cierre}</td>`;
+  tbody.appendChild(tr);
+});
+
+// ─── MODAL ───────────────────────────────────────────────
+function openModal(key) {
+  const data = modals[key];
+  if (!data) return;
+  document.getElementById('modal-title').textContent = data.title;
+  document.getElementById('modal-title').style.color = data.color || 'var(--text)';
+  let html = '';
+  data.sections.forEach(s => {
+    html += `<div class="modal-section"><h3>${s.h}</h3>`;
+    if (s.msg) {
+      html += `<div class="msg-bubble">${s.msg.replace(/\n/g,'<br>')}</div>`;
+    } else if (s.body) {
+      html += `<p>${s.body.replace(/\n/g,'<br>')}</p>`;
+    }
+    html += '</div>';
+  });
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('overlay')) {
+    document.getElementById('overlay').classList.remove('show');
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('overlay').classList.remove('show');
+});
+</script>
+</body>
+</html>
